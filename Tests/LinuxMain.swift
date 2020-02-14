@@ -1,7 +1,7 @@
 import XCTest
 
-import NCCCaptureStdoutStderrTests
+import NCCFileDescriptorTapTests
 
 var tests = [XCTestCaseEntry]()
-tests += NCCCaptureStdoutStderrTests.allTests()
+tests += NCCFileDescriptorTapTests.allTests()
 XCTMain(tests)
