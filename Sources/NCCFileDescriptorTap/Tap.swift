@@ -6,9 +6,10 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// A description of a single file descriptor tap/redirection.
-public class Tap: Identifiable {
+public class Tap: Identifiable, ObservableObject {
     public typealias ID = UUID
 
     /// Unique identifier for this TapProfile.
@@ -27,11 +28,28 @@ public class Tap: Identifiable {
     public var processingMode: ProcessingMode {
         didSet {
             reader.alsoOutputTo = processingMode == .tap ? originalDestination : nil
+            fatalIfDisconnectedInDebug()
         }
     }
 
-    /// Describes the way(s) data will be delivrered.
-    public var dataDeliveryProfile: DataDeliveryProfile
+    /// Receives raw data as it is read
+    public var rawReceiver: ((_ data: Data, _ profile: Tap) -> Void)? {
+        didSet {
+            fatalIfDisconnectedInDebug()
+        }
+    }
+
+    /// Incoming data is parsed into individual lines (separated by newline), and
+    /// is delivered to the callback 1 line at a time, with trailing newline removed.
+    public var stringReceiver: ((_ text: String, _ profile: Tap) -> Void)? {
+        didSet {
+            fatalIfDisconnectedInDebug()
+        }
+    }
+
+    /// Data is delivered in the same way as stringReceiver callback, but through a
+    /// Binding<String>, suitable for use with SwiftUI
+    @Published private(set) var mostRecentString = ""
 
     /// The file descriptor from which to read to receive data from the tapped
     /// file descriptor
@@ -43,28 +61,25 @@ public class Tap: Identifiable {
     /// A temporary buffer that accumulates characters until we receive a newline
     private var buffer: String = ""
 
-    /// Process incoming data, and distribute it to wherever it goes.
-    ///
-    /// - Parameters
-    ///      - data: The incoming data.
-    ///      - dataStream: The dataStream file descriptor from which the data was read.
-    private func processData(_ data: Data, _ dataStream: Int32) {
-        // Raw delivery
-        dataDeliveryProfile.rawReceiver?(data, self)
+    /// True if this tap has been disconnected/shutdown.
+    private(set) var isDisconnected = false
 
-        // Processed as newline-separated strings
-        buffer += String(bytes: data, encoding: .nonLossyASCII) ?? ""
-        while let index = buffer.firstIndex(of: "\n") {
+    /// Disconnects the tap, restoring things to back how they were when we started
+    public func disconnect() {
+        dup2(originalDestination, source)
+        close(dataStream)
+        
+        isDisconnected = true
+        print("Disconected")
+    }
 
-            // Grab the single line of output
-            let lineOfText = String(buffer.prefix(upTo: index))
-
-            // Remove it from rando
-            buffer.removeSubrange(buffer.startIndex ... index)
-
-            // Post the new line of text
-            dataDeliveryProfile.stringReceiver?(lineOfText, self)
-            dataDeliveryProfile.binding.wrappedValue = lineOfText
+    private func fatalIfDisconnectedInDebug() {
+        if isDisconnected {
+            #if DEBUG
+            fatalError("Attempted to use Tap after disconnection.")
+            #else
+            print("Attempted to use Tap after disconnection.")
+            #endif
         }
     }
 
@@ -77,33 +92,31 @@ public class Tap: Identifiable {
     ///   - id: Unique identifier
     public init(_ outputSource: OutputSource,
          processingMode: ProcessingMode = .tap,
-         dataDeliveryProfile: DataDeliveryProfile = DataDeliveryProfile(),
-         id: ID =  ID()) {
+         rawReceiver: ((_ data: Data, _ profile: Tap) -> Void)? = nil,
+         stringReceiver: ((_ text: String, _ profile: Tap) -> Void)? = nil) {
 
         // Output source to be tapped
         let source = outputSource.fileno
 
         // Save the current stdout destination
         let originalDestination = dup(source)
-//print("  Tap duped source \(source) is \(originalDestination) (originalDestination)")
 
         // Make our pipe
         var ourPipe = [Int32].init(repeating: 0, count: 2)
         if pipe(&ourPipe) != 0 {
             fatalError("pipe returned non-zero")
         }
-//print("  Tap made pipe with fd[0] (read side) \(ourPipe[0]) and fd[1] (write side) is \(ourPipe[1])")
-        // Redirect stdout to the pipe
+        
         dup2(ourPipe[1], source)
         close(ourPipe[1])
-//print("  Tap closed our pipe's fd[1] (\(ourPipe[1]) after linking to source \(source)")
-//    print("  Tap setting dataStream fd to fd[0] of our pipe, which is \(ourPipe[0])")
-        self.id = id
+
+        self.id = ID()
         self.source = source
         self.originalDestination = originalDestination
         self.processingMode = processingMode
         self.dataStream = ourPipe[0]
-        self.dataDeliveryProfile = dataDeliveryProfile
+        self.rawReceiver = rawReceiver
+        self.stringReceiver = stringReceiver
 
         let alsoOutput = processingMode == .tap ? originalDestination : nil
         self.reader = ReaderThread(source: dataStream,
@@ -111,4 +124,41 @@ public class Tap: Identifiable {
         reader.dataReceiver = self.processData
         reader.start()
     }
+
+    deinit {
+        disconnect()
+    }
+
+    /// Process incoming data, and distribute it to wherever it goes.
+    ///
+    /// - Parameters
+    ///      - data: The incoming data.
+    ///      - dataStream: The dataStream file descriptor from which the data was read.
+    private func processData(_ data: Data, _ dataStream: Int32) {
+        // Raw delivery
+        rawReceiver?(data, self)
+
+        // Processed as newline-separated strings
+        buffer += String(bytes: data, encoding: .nonLossyASCII) ?? ""
+        while let index = buffer.firstIndex(of: "\n") {
+
+            // Grab the single line of output
+            let lineOfText = String(buffer.prefix(upTo: index))
+
+            // Remove it from rando
+            buffer.removeSubrange(buffer.startIndex ... index)
+
+            // Post the new line of text
+            stringReceiver?(lineOfText, self)
+
+            if Thread.isMainThread {
+                mostRecentString = lineOfText
+            } else {
+                DispatchQueue.main.sync {
+                    self.mostRecentString = lineOfText
+                }
+            }
+        }
+    }
+
 }

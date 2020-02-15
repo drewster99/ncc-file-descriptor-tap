@@ -17,6 +17,9 @@ class ReaderThread: Thread {
     /// Callback closure to receive read data
     public var dataReceiver: ((_ data: Data, _ source: Int32) -> Void)?
 
+    /// Checks for cancelation periodically
+    private var timer: Timer?
+
     /// Creates a new thread to process I/O from the descriptor
     ///
     /// - Parameters:
@@ -28,21 +31,33 @@ class ReaderThread: Thread {
         self.dataReceiver = dataReceiver
     }
 
+    deinit {
+        timer?.invalidate()
+        timer = nil
+    }
+
     /// Thread activation point
     override func main() {
-//        print("reader main")
+        // Watch for cancellation
+        self.timer = Timer(timeInterval: 1.0, repeats: true, block: { [weak self] (_) in
+            self?.shutdownIfCancelled()
+        })
+        RunLoop.current.add(self.timer!, forMode: .default)
+
+        // Cancel now if needed
+        shutdownIfCancelled()
+
         // A 1 KB buffer
-        let bufferSize = 1
+        let bufferSize = 1024
         var bytes: [UInt8] = .init(repeating: 0x00, count: bufferSize)
 
         while true {
             // Read from our source
-//            print("Trying to read now (blocking) from fd \(source)")
             let count = read(source, UnsafeMutableRawPointer(&bytes), bufferSize)
-//            print("Reader thread read \(count) bytes")
             if count == 0 {
                 // End of file
-                Thread.exit()
+                self.cancel()
+                shutdownIfCancelled()
 
             } else if count < 0 {
                 // Some kind of error
@@ -62,6 +77,15 @@ class ReaderThread: Thread {
                 // Optionally output it to another descriptor
                 write(out, UnsafeMutableRawPointer(&bytes), count)
             }
+        }
+    }
+
+    /// Invalidates the timer and exits execution on this thread if marked as cancelled.
+    private func shutdownIfCancelled() {
+        if isCancelled {
+            timer?.invalidate()
+            timer = nil
+            Thread.exit()
         }
     }
 }
