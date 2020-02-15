@@ -22,20 +22,24 @@ class ReaderThread: Thread {
     /// - Parameters:
     ///   - source: Input file descriptor to read from.
     ///   - alsoOutputTo: Optional descriptor to write a copy of read data to
-    init(source: Int32, alsoOutputTo: Int32?) {
+    init(source: Int32, alsoOutputTo: Int32?, dataReceiver: ((_ data: Data, _ source: Int32) -> Void)? = nil) {
         self.source = source
         self.alsoOutputTo = alsoOutputTo
+        self.dataReceiver = dataReceiver
     }
 
     /// Thread activation point
     override func main() {
+        print("reader main")
         // A 1 KB buffer
-        var bytes: [UInt8] = .init(repeating: 0x00, count: 1024)
+        let bufferSize = 1
+        var bytes: [UInt8] = .init(repeating: 0x00, count: bufferSize)
 
         while true {
             // Read from our source
-            let count = read(source, UnsafeMutableRawPointer(&bytes), 1024)
-
+            print("Trying to read now (blocking) from fd \(source)")
+            let count = read(source, UnsafeMutableRawPointer(&bytes), bufferSize)
+            print("Reader thread read \(count) bytes")
             if count == 0 {
                 // End of file
                 Thread.exit()

@@ -3,39 +3,40 @@ import XCTest
 
 final class NCCFileDescriptorTapTests: XCTestCase {
     func testOutputRedirect() {
-//        let manager = NCCFileDescriptorTap()
-//
-//        var success = false
-//        var messageToSend = "This is our test message\n"
-//        let count = messageToSend.count
-//
-//        var buffer = [UInt8].init(repeating: 0x00, count: count)
-//        var zero: Int = 0
-//        var remaining = Range<String.Index>.init(uncheckedBounds: (lower: messageToSend.startIndex, upper: messageToSend.endIndex))
-//
-//        messageToSend.getBytes(&buffer,
-//                               maxLength: count,
-//                               usedLength: &zero,
-//                               encoding: String.Encoding.utf8,
-//                               options: [.allowLossy],
-//                               range: 0 ..< count,
-//                               remaining: UnsafeMutablePointer(&remaining))
-//
-//        func receiver(_ text: String, _ tap: Tap) {
-//            success = text == messageToSend
-//        }
-//
-//        var fds = [Int32].init(repeating: 0, count: 2)
-//        pipe(&fds)
-//
-//        let tap = Tap(.other(fileno: fds[0]),
-//                      processingMode: .tap,
-//                      dataDeliveryProfile: DataDeliveryProfile(stringReceiver: receiver))
-//        manager.add(tap)
-//
-//        let res = write(fds[1], UnsafeMutableRawPointer(&buffer), count)
-//        XCTAssert(success, "Redirect test failed")
-        
+        let manager = NCCFileDescriptorTap()
+
+        var success = false
+
+        var buffer = Data([ 1, 27, 125, 205, 219 ])
+        let count = buffer.count
+        print("About to send \(count) bytes")
+
+        func receiver(_ data: Data, _ tap: Tap) {
+            print("Receiver got some data \(data.count) bytes")
+            success = data == buffer
+            print("Success? \(success ? "YES" : "no")")
+        }
+
+        // Create some FDs for us to use
+        var fds = [Int32].init(repeating: 0, count: 2)
+        let pipeResult = pipe(&fds)
+        XCTAssert(pipeResult == 0, "Pipe failure")
+
+        print("Pipe -- fd[0] (read side) is \(fds[0]), fd[1] is \(fds[1]) (write side)")
+        // Tap in
+        let tap = Tap(.other(fileno: fds[0]),
+                      processingMode: .tap,
+                      dataDeliveryProfile: DataDeliveryProfile(rawReceiver: receiver))
+        manager.add(tap)
+
+        // end our data
+        print("Sending it")
+        DispatchQueue.global(qos: .userInteractive).async {
+            let res = write(fds[1], UnsafeMutableRawPointer(&buffer), count)
+            close(fds[1])
+        }
+        sleep(3)
+        XCTAssert(success, "Redirect test failed")
     }
 
     static var allTests = [
