@@ -30,16 +30,16 @@ class ReaderThread: Thread {
 
     /// Thread activation point
     override func main() {
-        print("reader main")
+//        print("reader main")
         // A 1 KB buffer
         let bufferSize = 1
         var bytes: [UInt8] = .init(repeating: 0x00, count: bufferSize)
 
         while true {
             // Read from our source
-            print("Trying to read now (blocking) from fd \(source)")
+//            print("Trying to read now (blocking) from fd \(source)")
             let count = read(source, UnsafeMutableRawPointer(&bytes), bufferSize)
-            print("Reader thread read \(count) bytes")
+//            print("Reader thread read \(count) bytes")
             if count == 0 {
                 // End of file
                 Thread.exit()

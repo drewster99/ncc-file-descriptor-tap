@@ -85,19 +85,19 @@ public class Tap: Identifiable {
 
         // Save the current stdout destination
         let originalDestination = dup(source)
-print("  Tap duped source \(source) is \(originalDestination) (originalDestination)")
+//print("  Tap duped source \(source) is \(originalDestination) (originalDestination)")
 
         // Make our pipe
         var ourPipe = [Int32].init(repeating: 0, count: 2)
         if pipe(&ourPipe) != 0 {
             fatalError("pipe returned non-zero")
         }
-print("  Tap made pipe with fd[0] (read side) \(ourPipe[0]) and fd[1] (write side) is \(ourPipe[1])")
+//print("  Tap made pipe with fd[0] (read side) \(ourPipe[0]) and fd[1] (write side) is \(ourPipe[1])")
         // Redirect stdout to the pipe
         dup2(ourPipe[1], source)
         close(ourPipe[1])
-print("  Tap closed our pipe's fd[1] (\(ourPipe[1]) after linking to source \(source)")
-    print("  Tap setting dataStream fd to fd[0] of our pipe, which is \(ourPipe[0])")
+//print("  Tap closed our pipe's fd[1] (\(ourPipe[1]) after linking to source \(source)")
+//    print("  Tap setting dataStream fd to fd[0] of our pipe, which is \(ourPipe[0])")
         self.id = id
         self.source = source
         self.originalDestination = originalDestination
