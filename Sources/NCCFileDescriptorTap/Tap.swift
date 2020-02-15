@@ -75,7 +75,7 @@ public class Tap: Identifiable {
     ///   - processingMode: Processing mode, tap or redirect.
     ///   - dataDeliveryProfile: Delivery options for data which has been read
     ///   - id: Unique identifier
-    init(_ outputSource: OutputSource,
+    public init(_ outputSource: OutputSource,
          processingMode: ProcessingMode = .tap,
          dataDeliveryProfile: DataDeliveryProfile = DataDeliveryProfile(),
          id: ID =  ID()) {
