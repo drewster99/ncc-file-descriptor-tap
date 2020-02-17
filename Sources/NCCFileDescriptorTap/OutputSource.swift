@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  OutputSource.swift
+//  Copyright (C) 2020 Nuclear Cyborg Corp
 //
 //  Created by Andrew Benson on 2/14/20.
 //
