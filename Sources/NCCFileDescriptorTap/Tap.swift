@@ -120,7 +120,8 @@ public class Tap: Identifiable, ObservableObject {
 
         let alsoOutput = processingMode == .tap ? originalDestination : nil
         self.reader = ReaderThread(source: dataStream,
-                                   alsoOutputTo: alsoOutput)
+                                   alsoOutputTo: alsoOutput,
+                                   sourceForThreadNaming: source)
         reader.dataReceiver = self.processData
         reader.start()
     }
@@ -139,7 +140,7 @@ public class Tap: Identifiable, ObservableObject {
         rawReceiver?(data, self)
 
         // Processed as newline-separated strings
-        buffer += String(bytes: data, encoding: .nonLossyASCII) ?? ""
+        buffer += String(bytes: data, encoding: .utf8) ?? ""
         while let index = buffer.firstIndex(of: "\n") {
 
             // Grab the single line of output

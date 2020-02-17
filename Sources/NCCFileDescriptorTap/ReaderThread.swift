@@ -25,14 +25,14 @@ class ReaderThread: Thread {
     /// - Parameters:
     ///   - source: Input file descriptor to read from.
     ///   - alsoOutputTo: Optional descriptor to write a copy of read data to
-    init(source: Int32, alsoOutputTo: Int32?, dataReceiver: ((_ data: Data, _ source: Int32) -> Void)? = nil) {
+    init(source: Int32, alsoOutputTo: Int32?, sourceForThreadNaming: Int32, dataReceiver: ((_ data: Data, _ source: Int32) -> Void)? = nil) {
         self.source = source
         self.alsoOutputTo = alsoOutputTo
         self.dataReceiver = dataReceiver
 
         super.init()
         
-        let name = OutputSource.from(source).description
+        let name = OutputSource.from(sourceForThreadNaming).description
         self.name = "NCCFileDescriptorTap Reader for \(name)"
     }
 
@@ -76,8 +76,7 @@ class ReaderThread: Thread {
             }
 
             let data = Data(bytes.prefix(count))
-            let s = String.init(data: data, encoding: .utf8)
-            print("data is \(data.count) bytes: -->\(s)<--")
+
             // Notify the data receiver
             dataReceiver?(data, source)
             if let out = alsoOutputTo {
