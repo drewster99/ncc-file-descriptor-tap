@@ -1,7 +1,7 @@
 //import XCTest
 //@testable import NCCFileDescriptorTap
 
-final class NCCFileDescriptorTapTests: XCTestCase {
+//final class NCCFileDescriptorTapTests: XCTestCase {
 //    func testOutputRedirect() {
 //        let manager = NCCFileDescriptorTap()
 //
@@ -42,4 +42,4 @@ final class NCCFileDescriptorTapTests: XCTestCase {
 //    static var allTests = [
 //        ("testOutputRedirect", testOutputRedirect),
 //    ]
-}
+//}

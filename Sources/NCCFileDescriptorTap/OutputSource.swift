@@ -20,3 +20,26 @@ public enum OutputSource {
         }
     }
 }
+
+public extension OutputSource {
+    static func from(_ fileno: Int32) -> OutputSource {
+        switch fileno {
+        case STDOUT_FILENO:
+            return .stdout
+        case STDERR_FILENO:
+            return .stderr
+        default:
+            return .other(fileno :fileno)
+        }
+    }
+}
+
+extension OutputSource: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .stdout: return "stdout"
+        case .stderr: return "stderr"
+        case .other(let fileno): return "fileno \(fileno)"
+        }
+    }
+}

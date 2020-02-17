@@ -29,6 +29,11 @@ class ReaderThread: Thread {
         self.source = source
         self.alsoOutputTo = alsoOutputTo
         self.dataReceiver = dataReceiver
+
+        super.init()
+        
+        let name = OutputSource.from(source).description
+        self.name = "NCCFileDescriptorTap Reader for \(name)"
     }
 
     deinit {
