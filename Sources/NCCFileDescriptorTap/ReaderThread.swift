@@ -63,6 +63,7 @@ class ReaderThread: Thread {
                 // End of file
                 self.cancel()
                 shutdownIfCancelled()
+                return
 
             } else if count < 0 {
                 // Some kind of error
@@ -75,7 +76,8 @@ class ReaderThread: Thread {
             }
 
             let data = Data(bytes.prefix(count))
-
+            let s = String.init(data: data, encoding: .utf8)
+            print("data is \(data.count) bytes: -->\(s)<--")
             // Notify the data receiver
             dataReceiver?(data, source)
             if let out = alsoOutputTo {
