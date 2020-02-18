@@ -70,7 +70,6 @@ public class Tap: Identifiable, ObservableObject {
         close(dataStream)
         
         isDisconnected = true
-        print("Disconected")
     }
 
     private func fatalIfDisconnectedInDebug() {
@@ -152,14 +151,9 @@ public class Tap: Identifiable, ObservableObject {
             // Post the new line of text
             stringReceiver?(lineOfText, self)
 
-            if Thread.isMainThread {
-                mostRecentString = lineOfText
-            } else {
-                DispatchQueue.main.sync {
-                    self.mostRecentString = lineOfText
-                }
+            DispatchQueue.main.async {
+                self.mostRecentString = lineOfText
             }
         }
     }
-
 }
