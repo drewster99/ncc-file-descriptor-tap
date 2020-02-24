@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// A description of a single file descriptor tap/redirection.
-public class Tap: Identifiable, ObservableObject {
+public class Tap: Identifiable {
     public typealias ID = UUID
 
     /// Unique identifier for this TapProfile.
@@ -47,6 +47,7 @@ public class Tap: Identifiable, ObservableObject {
         }
     }
 
+    @available(iOS 13, *)
     /// Data is delivered in the same way as stringReceiver callback, but through a
     /// Binding<String>, suitable for use with SwiftUI
     @Published private(set) var mostRecentString = ""
@@ -156,4 +157,9 @@ public class Tap: Identifiable, ObservableObject {
             }
         }
     }
+}
+
+@available(iOS 13, *)
+extension Tap: ObservableObject {
+
 }
