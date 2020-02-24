@@ -47,11 +47,6 @@ public class Tap: Identifiable {
         }
     }
 
-    @available(iOS 13, *)
-    /// Data is delivered in the same way as stringReceiver callback, but through a
-    /// Binding<String>, suitable for use with SwiftUI
-    @Published private(set) var mostRecentString = ""
-
     /// The file descriptor from which to read to receive data from the tapped
     /// file descriptor
     private let dataStream: Int32
@@ -151,17 +146,6 @@ public class Tap: Identifiable {
 
             // Post the new line of text
             stringReceiver?(lineOfText, self)
-
-            if #available(iOS 13, *) {
-                DispatchQueue.main.async {
-                    self.mostRecentString = lineOfText
-                }
-            }
         }
     }
-}
-
-@available(iOS 13, *)
-extension Tap: ObservableObject {
-
 }
