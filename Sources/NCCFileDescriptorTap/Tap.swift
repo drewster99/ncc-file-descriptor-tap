@@ -152,8 +152,10 @@ public class Tap: Identifiable {
             // Post the new line of text
             stringReceiver?(lineOfText, self)
 
-            DispatchQueue.main.async {
-                self.mostRecentString = lineOfText
+            if #available(iOS 13, *) {
+                DispatchQueue.main.async {
+                    self.mostRecentString = lineOfText
+                }
             }
         }
     }
